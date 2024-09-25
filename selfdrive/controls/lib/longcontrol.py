@@ -115,7 +115,7 @@ class LongControl:
                                                        should_stop, CS.brakePressed,
                                                        CS.cruiseState.standstill)
     if self.params.get_bool("BlendedACC"):
-      experimental_mode = self.params.get_bool("ExperimentalMode")
+      experimental_mode = self.params.get_int("CEStatus") # 0 means expereimental mode is off
       if experimental_mode and not self.experimental_mode_last:
         self.reset()
       self.experimental_mode_last = experimental_mode

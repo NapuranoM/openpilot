@@ -86,12 +86,12 @@ class CarController(CarControllerBase):
           raw_acc_output = max(-1000, min(raw_acc_output, 1000))
 
           if self.params.get_bool("BlendedACC"):
-            if self.params.get_bool("ExperimentalMode"):
-              self.acc_filter.update_alpha(abs(raw_acc_output-self.filtered_acc_last)/100)
+            if self.params.get_int("CEStatus"):
+              self.acc_filter.update_alpha(abs(raw_acc_output-self.filtered_acc_last)/1000)
               filtered_acc_output = int(self.acc_filter.update(raw_acc_output))
             else:
               # we want to use the stock value in this case but we need a smooth transition.
-              self.acc_filter.update_alpha(abs(CS.crz_info["ACCEL_CMD"]-self.filtered_acc_last)/100)
+              self.acc_filter.update_alpha(abs(CS.crz_info["ACCEL_CMD"]-self.filtered_acc_last)/1000)
               filtered_acc_output = int(self.acc_filter.update(CS.crz_info["ACCEL_CMD"]))
 
             CS.crz_info["ACCEL_CMD"] = int(filtered_acc_output)
@@ -105,12 +105,12 @@ class CarController(CarControllerBase):
     else:
       raw_acc_output = (CC.actuators.accel * 240) + 2000
       if self.params.get_bool("BlendedACC"):
-        if self.params.get_bool("ExperimentalMode"):
-          self.acc_filter.update_alpha(abs(raw_acc_output-self.filtered_acc_last)/100)
+        if self.params.get_int("CEStatus"):
+          self.acc_filter.update_alpha(abs(raw_acc_output-self.filtered_acc_last)/1000)
           filtered_acc_output = int(self.acc_filter.update(raw_acc_output))
         else:
           # we want to use the stock value in this case but we need a smooth transition.
-          self.acc_filter.update_alpha(abs(CS.acc["ACCEL_CMD"]-self.filtered_acc_last)/100)
+          self.acc_filter.update_alpha(abs(CS.acc["ACCEL_CMD"]-self.filtered_acc_last)/1000)
           filtered_acc_output = int(self.acc_filter.update(CS.acc["ACCEL_CMD"]))
 
         acc_output = filtered_acc_output
