@@ -262,7 +262,7 @@ FW_VERSIONS = {
       b'PXM7-21PS1-B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
     ],
   },
-    CAR.MAZDA_3_2019 : {
+  CAR.MAZDA_3_2019: {
     (Ecu.eps, 0x730, None): [
       b'BDGF-3216X-C\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
       b'BCKA-3216X-E\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
@@ -302,7 +302,7 @@ FW_VERSIONS = {
       b'PX4K-21PS1-B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
     ],
   },
-  CAR.MAZDA_CX_30 : {
+  CAR.MAZDA_CX_30: {
     (Ecu.eps, 0x730, None): [
       b'DFR5-3216X-B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
       b'BDGF-3216X-B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
@@ -327,7 +327,7 @@ FW_VERSIONS = {
     ],
   },
 
-  CAR.MAZDA_CX_50 : {
+  CAR.MAZDA_CX_50: {
     (Ecu.eps, 0x730, None): [
       b'VA40-3216Y-B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
     ],
