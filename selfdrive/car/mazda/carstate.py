@@ -153,6 +153,11 @@ class CarState(CarStateBase):
     ret.steerFaultPermanent = cp_cam.vl["CAM_LKAS"]["ERR_BIT_1"] == 1 if not self.CP.flags & MazdaFlags.TORQUE_INTERCEPTOR else False
     self.cp_cam = cp_cam
     self.cp = cp
+
+    # FrogPilot CarState functions
+    self.lkas_previously_enabled = self.lkas_enabled
+    self.lkas_enabled = not self.lkas_disabled
+
     return ret, fp_ret
 
   def update_gen2(self, cp, cp_cam, cp_body, frogpilot_variables):
