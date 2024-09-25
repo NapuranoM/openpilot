@@ -177,6 +177,7 @@ STATIC_DATA_365 = [0xFFF7FE7F, 0xFBFF3FC]
 STATIC_DATA_366 = [0xFFF7FE7F, 0xFBFF3FC]
 static_data_list = [STATIC_DATA_361, STATIC_DATA_362, STATIC_DATA_363, STATIC_DATA_364, STATIC_DATA_365, STATIC_DATA_366]
 
+# GEN1 radar interceptor
 def create_radar_command(packer, frame, CC, CS, hold):
   accel = 0
   ret = []
@@ -228,17 +229,20 @@ def create_radar_command(packer, frame, CC, CS, hold):
 
   return ret
 
-def create_acc_cmd(packer, values, accel, hold, resume):
+# GEN2 new mazdas
+def create_acc_cmd(self, packer, CS, CC, hold, resume):
+  values = CS.acc
   msg_name = "ACC"
   bus = 2
 
   if (values["ACC_ENABLED"]):
-    if Params().get_bool("ExperimentalLongitudinalEnabled"):
-      values["ACCEL_CMD"] = (accel * 240) + 2000
+    if Params().get_bool("ExperimentalLongitudinalEnabled") and CC.longActive:
+      values["ACCEL_CMD"] = (CC.actuators.accel * 240) + 2000
     values["HOLD"] = hold
     values["RESUME"] = resume
   else:
     pass
 
   return packer.make_can_msg(msg_name, bus, values)
+
 

@@ -92,7 +92,7 @@ class CarController(CarControllerBase):
         if CS.out.standstill: # if we're stopped
           if not self.hold_delay.active(): # and we have been stopped for more than hold_delay duration. This prevents a hard brake if we aren't fully stopped.
             if (CC.cruiseControl.resume or CC.cruiseControl.override or CS.out.gasPressed or
-                CC.actuators.longControlState == LongCtrlState.starting): # and we want to resume
+                (CC.actuators.longControlState == LongCtrlState.starting)): # and we want to resume
               self.resume_timer.reset() # reset the resume timer so its active
             else: # otherwise we're holding
               hold = self.hold_timer.active() # hold for 6s. This allows the electric brake to hold the car.
@@ -102,7 +102,7 @@ class CarController(CarControllerBase):
           self.hold_delay.reset() # reset the hold delay
 
         resume = self.resume_timer.active() # stay on for 0.5s to release the brake. This allows the car to move.
-        can_sends.append(mazdacan.create_acc_cmd(self.packer, CS.acc, CC.actuators.accel, hold, resume))
+        can_sends.append(mazdacan.create_acc_cmd(self, self.packer, CS, CC, hold, resume))
 
     # send steering command
     can_sends.extend(mazdacan.create_steering_control(self.packer, self.CP,
