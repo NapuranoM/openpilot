@@ -98,6 +98,7 @@ class LongControl:
     self.last_output_accel = 0.0
     self.gain_step = 0.0001  # Step size for increasing/decreasing gain
     self.params = Params()
+    self.params_memory = Params("/dev/shm/params")
     gain = self.params.get_float("LongOutputGain")
     self.auto_tune = self.params.get_bool("ExperimentalLongTune")
     self.output_gain = gain if gain != 0.0 and self.auto_tune else 1.0 # Initial output gain
@@ -115,7 +116,7 @@ class LongControl:
                                                        should_stop, CS.brakePressed,
                                                        CS.cruiseState.standstill)
     if self.params.get_bool("BlendedACC"):
-      experimental_mode = self.params.get_int("CEStatus") # 0 means expereimental mode is off
+      experimental_mode = self.params_memory.get_int("CEStatus") # 0 means expereimental mode is off
       if experimental_mode and not self.experimental_mode_last:
         self.reset()
       self.experimental_mode_last = experimental_mode

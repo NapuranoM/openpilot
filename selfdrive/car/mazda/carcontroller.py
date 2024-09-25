@@ -28,6 +28,8 @@ class CarController(CarControllerBase):
     self.acc_filter = FirstOrderFilter(0.0, .1, DT_CTRL, initialized=False)
     self.filtered_acc_last = 0
     self.params = Params()
+    self.params_memory = Params("/dev/shm/params")
+
 
   def update(self, CC, CS, now_nanos, frogpilot_toggles):
     can_sends = []
@@ -86,7 +88,7 @@ class CarController(CarControllerBase):
           raw_acc_output = max(-1000, min(raw_acc_output, 1000))
 
           if self.params.get_bool("BlendedACC"):
-            if self.params.get_int("CEStatus"):
+            if self.params_memory.get_int("CEStatus"):
               self.acc_filter.update_alpha(abs(raw_acc_output-self.filtered_acc_last)/1000)
               filtered_acc_output = int(self.acc_filter.update(raw_acc_output))
             else:
@@ -105,7 +107,7 @@ class CarController(CarControllerBase):
     else:
       raw_acc_output = (CC.actuators.accel * 240) + 2000
       if self.params.get_bool("BlendedACC"):
-        if self.params.get_int("CEStatus"):
+        if self.params_memory.get_int("CEStatus"):
           self.acc_filter.update_alpha(abs(raw_acc_output-self.filtered_acc_last)/1000)
           filtered_acc_output = int(self.acc_filter.update(raw_acc_output))
         else:
