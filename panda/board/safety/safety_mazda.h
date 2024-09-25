@@ -155,8 +155,10 @@ static void mazda_rx_hook(const CANPacket_t *to_push) {
       }
 
       if (addr == MAZDA_2019_CRUISE) {
-        acc_main_on = (GET_BYTE(to_push, 0) & 0x20U) || GET_BYTE(to_push, 0) & 0x40U;
-        pcm_cruise_check(acc_main_on);
+        acc_main_on = true;
+        bool cruise_engaged = GET_BYTE(to_push, 0) & 0x20U;
+        bool pre_enable = GET_BYTE(to_push, 0) & 0x40U;
+        pcm_cruise_check((cruise_engaged || pre_enable));
       }
 
       generic_rx_checks(addr == MAZDA_2019_SPEED);
