@@ -129,6 +129,7 @@ static void mazda_rx_hook(const CANPacket_t *to_push) {
 
       // enter controls on rising edge of ACC, exit controls on ACC off
       if (addr == MAZDA_CRZ_CTRL && !no_mrcc && !radar_interceptor) {
+        acc_main_on = GET_BIT(to_push, 17U);
         bool cruise_engaged = GET_BYTE(to_push, 0) & 0x8U;
         pcm_cruise_check(cruise_engaged);
       }
@@ -140,6 +141,7 @@ static void mazda_rx_hook(const CANPacket_t *to_push) {
       if (addr == MAZDA_PEDALS) {
         brake_pressed = (GET_BYTE(to_push, 0) & 0x10U);
         if (radar_interceptor || no_mrcc) {
+          // acc_main_on = GET_BIT(to_push, 17U); TODO
           bool cruise_engaged = GET_BYTE(to_push, 0) & 0x8U;
           pcm_cruise_check(cruise_engaged);
         }
