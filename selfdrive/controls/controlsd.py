@@ -626,7 +626,11 @@ class Controls:
         t_since_plan = (self.sm.frame - self.sm.recv_frame['longitudinalPlan']) * DT_CTRL
         actuators.accel = self.LoC.update_old_long(CC.longActive, CS, long_plan, pid_accel_limits, t_since_plan)
       else:
-        actuators.accel = self.LoC.update(CC.longActive, CS, long_plan.aTarget, long_plan.shouldStop, pid_accel_limits)
+        try:
+          pitch = self.sm['liveLocationKalman'].calibratedOrientationNED.value[1]
+        except:
+          pitch = 0.0
+        actuators.accel = self.LoC.update(CC.longActive, CS, long_plan.aTarget, pitch, long_plan.shouldStop, pid_accel_limits)
 
       if len(long_plan.speeds):
         actuators.speed = long_plan.speeds[-1]

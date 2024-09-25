@@ -4,7 +4,9 @@ from openpilot.selfdrive.car import apply_driver_steer_torque_limits, apply_ti_s
 from openpilot.selfdrive.car.interfaces import CarControllerBase
 from openpilot.selfdrive.car.mazda import mazdacan
 from openpilot.selfdrive.car.mazda.values import CarControllerParams, Buttons, MazdaFlags
-from openpilot.common.realtime import ControlsTimer as Timer
+from openpilot.common.realtime import ControlsTimer as Timer, DT_CTRL
+from openpilot.common.filter_simple import FirstOrderFilter
+from openpilot.common.params import Params
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
 LongCtrlState = car.CarControl.Actuators.LongControlState
@@ -23,6 +25,9 @@ class CarController(CarControllerBase):
     self.hold_delay = Timer(.5) # delay before we start holding as to not hit the brakes too hard
     self.resume_timer = Timer(0.5)
     self.cancel_delay = Timer(0.07) # 70ms delay to try to avoid a race condition with stock system
+    self.acc_filter = FirstOrderFilter(0.0, .1, DT_CTRL, initialized=False)
+    self.filtered_acc_last = 0
+    self.params = Params()
 
   def update(self, CC, CS, now_nanos, frogpilot_toggles):
     can_sends = []
@@ -75,10 +80,47 @@ class CarController(CarControllerBase):
           hold = self.hold_timer.active()
         else:
           self.hold_timer.reset()
+
+        if CC.longActive:
+          raw_acc_output = CC.actuators.accel * 1150
+          raw_acc_output = max(-1000, min(raw_acc_output, 1000))
+
+          if self.params.get_bool("BlendedACC"):
+            if self.params.get_bool("ExperimentalMode"):
+              self.acc_filter.update_alpha(abs(raw_acc_output-self.filtered_acc_last)/100)
+              filtered_acc_output = int(self.acc_filter.update(raw_acc_output))
+            else:
+              # we want to use the stock value in this case but we need a smooth transition.
+              self.acc_filter.update_alpha(abs(CS.crz_info["ACCEL_CMD"]-self.filtered_acc_last)/100)
+              filtered_acc_output = int(self.acc_filter.update(CS.crz_info["ACCEL_CMD"]))
+
+            CS.crz_info["ACCEL_CMD"] = int(filtered_acc_output)
+            self.filtered_acc_last = filtered_acc_output
+          else:
+            acc_output = raw_acc_output
+
         if self.frame % 2 == 0:
-          can_sends.extend(mazdacan.create_radar_command(self.packer, self.frame, CC, CS, hold))
+          can_sends.extend(mazdacan.create_radar_command(self.packer, self.frame, CC.longActive, CS, hold))
 
     else:
+      raw_acc_output = (CC.actuators.accel * 240) + 2000
+      if self.params.get_bool("BlendedACC"):
+        if self.params.get_bool("ExperimentalMode"):
+          self.acc_filter.update_alpha(abs(raw_acc_output-self.filtered_acc_last)/100)
+          filtered_acc_output = int(self.acc_filter.update(raw_acc_output))
+        else:
+          # we want to use the stock value in this case but we need a smooth transition.
+          self.acc_filter.update_alpha(abs(CS.acc["ACCEL_CMD"]-self.filtered_acc_last)/100)
+          filtered_acc_output = int(self.acc_filter.update(CS.acc["ACCEL_CMD"]))
+
+        acc_output = filtered_acc_output
+        self.filtered_acc_last = filtered_acc_output
+      else:
+        acc_output = raw_acc_output
+
+      if self.params.get_bool("ExperimentalLongitudinalEnabled") and CC.longActive:
+        CS.acc["ACCEL_CMD"] = acc_output
+
       resume = False
       hold = False
       if Timer.interval(2): # send ACC command at 50hz
@@ -102,7 +144,7 @@ class CarController(CarControllerBase):
           self.hold_delay.reset() # reset the hold delay
 
         resume = self.resume_timer.active() # stay on for 0.5s to release the brake. This allows the car to move.
-        can_sends.append(mazdacan.create_acc_cmd(self, self.packer, CS, CC, hold, resume))
+        can_sends.append(mazdacan.create_acc_cmd(self, self.packer, CS.acc, hold, resume))
 
     # send steering command
     can_sends.extend(mazdacan.create_steering_control(self.packer, self.CP,

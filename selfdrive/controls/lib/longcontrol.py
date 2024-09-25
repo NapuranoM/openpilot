@@ -4,6 +4,7 @@ from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N, apply_deadzone
 from openpilot.selfdrive.controls.lib.pid import PIDController
 from openpilot.selfdrive.modeld.constants import ModelConstants
+from openpilot.common.params import Params
 
 CONTROL_N_T_IDX = ModelConstants.T_IDXS[:CONTROL_N]
 
@@ -95,11 +96,17 @@ class LongControl:
                              k_f=CP.longitudinalTuning.kf, rate=1 / DT_CTRL)
     self.v_pid = 0.0
     self.last_output_accel = 0.0
+    self.gain_step = 0.0001  # Step size for increasing/decreasing gain
+    self.params = Params()
+    gain = self.params.get_float("LongOutputGain")
+    self.auto_tune = self.params.get_bool("ExperimentalLongTune")
+    self.output_gain = gain if gain != 0.0 and self.auto_tune else 1.0 # Initial output gain
+    self.experimental_mode_last = False
 
   def reset(self):
     self.pid.reset()
 
-  def update(self, active, CS, a_target, should_stop, accel_limits):
+  def update(self, active, CS, a_target, pitch, should_stop, accel_limits):
     """Update longitudinal control. This updates the state machine and runs a PID loop"""
     self.pid.neg_limit = accel_limits[0]
     self.pid.pos_limit = accel_limits[1]
@@ -107,6 +114,12 @@ class LongControl:
     self.long_control_state = long_control_state_trans(self.CP, active, self.long_control_state, CS.vEgo,
                                                        should_stop, CS.brakePressed,
                                                        CS.cruiseState.standstill)
+    if self.params.get_bool("BlendedACC"):
+      experimental_mode = self.params.get_bool("ExperimentalMode")
+      if experimental_mode and not self.experimental_mode_last:
+        self.reset()
+      self.experimental_mode_last = experimental_mode
+
     if self.long_control_state == LongCtrlState.off:
       self.reset()
       output_accel = 0.
@@ -127,7 +140,28 @@ class LongControl:
       output_accel = self.pid.update(error, speed=CS.vEgo,
                                      feedforward=a_target)
 
+    output_accel = output_accel * self.output_gain
     self.last_output_accel = clip(output_accel, accel_limits[0], accel_limits[1])
+    is_flat = abs(pitch) <= 0.05
+
+    self.auto_tune = self.params.get_bool("ExperimentalLongTune")
+    if not self.auto_tune:
+      self.output_gain = 1.0
+    if is_flat and self.auto_tune and active and self.last_output_accel == output_accel: # don't adjust when limited or inactive
+      # if the signs of accel and integrator match, increase the output gain
+      i = self.pid.i
+      if (i > 0.02 and a_target > 0.2) or (i < -0.02 and a_target < -0.2):
+        self.output_gain += self.gain_step
+        self.output_gain = max(0.5, min(self.output_gain, 2.0))
+        self.params.put_float_nonblocking("LongOutputGain",self.output_gain)
+        self.pid.i = 0.0
+      # if the signs of accel and integrator are opposite, decrease the output gain
+      elif (i < -0.02 and a_target > 0.2) or (i > 0.02 and a_target < -0.2):
+        self.output_gain -= self.gain_step
+        self.output_gain = max(0.5, min(self.output_gain, 2.0))
+        self.params.put_float_nonblocking("LongOutputGain", self.output_gain)
+        self.pid.i = 0.0
+
     return self.last_output_accel
 
   def reset_old_long(self, v_pid):

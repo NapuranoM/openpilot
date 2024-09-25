@@ -1,5 +1,4 @@
 from openpilot.selfdrive.car.mazda.values import Buttons, MazdaFlags
-from openpilot.common.params import Params
 from openpilot.common.numpy_fast import clip
 
 def create_steering_control(packer, CP, frame, apply_steer, lkas):
@@ -178,27 +177,27 @@ STATIC_DATA_366 = [0xFFF7FE7F, 0xFBFF3FC]
 static_data_list = [STATIC_DATA_361, STATIC_DATA_362, STATIC_DATA_363, STATIC_DATA_364, STATIC_DATA_365, STATIC_DATA_366]
 
 # GEN1 radar interceptor
-def create_radar_command(packer, frame, CC, CS, hold):
-  accel = 0
+def create_radar_command(packer, frame, active, CS, hold):
+  #accel = 0
   ret = []
   crz_ctrl = CS.crz_cntr
   crz_info = CS.crz_info
 
-  if CC.longActive: # this is set true in longcontrol.py
-    accel = CC.actuators.accel * 1170
-    accel = accel if accel < 1000 else 1000
-  else:
-    accel = int(crz_info["ACCEL_CMD"])
+  # if CC.longActive: # this is set true in longcontrol.py
+  #   accel = CC.actuators.accel * 1150
+  #   accel = accel if accel < 1000 else 1000
+  # else:
+  #   accel = int(crz_info["ACCEL_CMD"])
 
-  crz_info["ACC_ACTIVE"] = int(CC.longActive)
+  crz_info["ACC_ACTIVE"] = active
   crz_info["ACC_SET_ALLOWED"] = int(bool(int(CS.cp.vl["GEAR"]["GEAR"]) & 4)) # we can set ACC_SET_ALLOWED bit when in drive. Allows crz to be set from 1kmh.
   crz_info["CRZ_ENDED"] = 0 # this should keep acc on down to 5km/h on my 2018 M3
-  crz_info["ACCEL_CMD"] = accel
+  #crz_info["ACCEL_CMD"] = accel
   crz_info["STOPPING_MAYBE"] = hold
   crz_info["STOPPING_MAYBE2"] = hold
 
-  crz_ctrl["CRZ_ACTIVE"] = int(CC.longActive)
-  crz_ctrl["ACC_ACTIVE_2"] = int(CC.longActive)
+  crz_ctrl["CRZ_ACTIVE"] = active
+  crz_ctrl["ACC_ACTIVE_2"] = active
   crz_ctrl["DISABLE_TIMER_1"] = 0
   crz_ctrl["DISABLE_TIMER_2"] = 0
 
@@ -230,14 +229,11 @@ def create_radar_command(packer, frame, CC, CS, hold):
   return ret
 
 # GEN2 new mazdas
-def create_acc_cmd(self, packer, CS, CC, hold, resume):
-  values = CS.acc
+def create_acc_cmd(self, packer, values, hold, resume):
   msg_name = "ACC"
   bus = 2
 
   if (values["ACC_ENABLED"]):
-    if Params().get_bool("ExperimentalLongitudinalEnabled") and CC.longActive:
-      values["ACCEL_CMD"] = (CC.actuators.accel * 240) + 2000
     values["HOLD"] = hold
     values["RESUME"] = resume
   else:

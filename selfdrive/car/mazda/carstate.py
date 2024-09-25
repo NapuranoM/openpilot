@@ -31,6 +31,9 @@ class CarState(CarStateBase):
     self.ti_error = 0
     self.ti_lkas_allowed = False
 
+    self.shifting = False
+    self.torque_converter_lock = True
+
     self.update = self.update_gen1
     if CP.flags & MazdaFlags.GEN1:
       self.update = self.update_gen1
@@ -171,6 +174,10 @@ class CarState(CarStateBase):
 
     ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_lamp(100, cp.vl["BLINK_INFO"]["LEFT_BLINK"] == 1,
                                                                       cp.vl["BLINK_INFO"]["RIGHT_BLINK"] == 1)
+
+    ret.rpm = cp_cam.vl["ENGINE_DATA"]["RPM"]
+    self.shifting = cp_cam.vl["GEAR"]["SHIFT"]
+    self.torque_converter_lock = cp_cam.vl["GEAR"]["TORQUE_CONVERTER_LOCK"]
 
     ret.steeringAngleDeg = cp_cam.vl["STEER"]["STEER_ANGLE"]
 

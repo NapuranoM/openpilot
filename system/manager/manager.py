@@ -378,7 +378,10 @@ def manager_init() -> None:
     ("WD40LiveTorqueParameters", ""),
     ("WD40Score", "0"),
     ("WheelIcon", "frog"),
-    ("WheelSpeed", "0")
+    ("WheelSpeed", "0"),
+    ("ExperimentalLongTune", "0"),
+    ("LongOutputGain", "1.0"),
+    ("BlendedACC", "0"),
   ]
   if not PC:
     default_params.append(("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')))
