@@ -20,6 +20,7 @@ class CarInterface(CarInterfaceBase):
     ret.radarUnavailable = True
 
     ret.dashcamOnly = False
+    ret.openpilotLongitudinalControl = experimental_long
     if candidate in GEN1:
       ret.safetyConfigs[0].safetyParam |= Panda.FLAG_MAZDA_GEN1
       p = Params()
@@ -50,7 +51,6 @@ class CarInterface(CarInterfaceBase):
     if candidate in GEN2:
       ret.safetyConfigs[0].safetyParam |= Panda.FLAG_MAZDA_GEN2
       ret.experimentalLongitudinalAvailable = True
-      ret.openpilotLongitudinalControl = experimental_long
       ret.stopAccel = -.5
       ret.vEgoStarting = .2
       ret.longitudinalTuning.kpBP = [0., 5., 35.]
