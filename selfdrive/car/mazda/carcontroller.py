@@ -1,31 +1,45 @@
 from cereal import car
 from opendbc.can.packer import CANPacker
-from openpilot.selfdrive.car import apply_driver_steer_torque_limits
+from openpilot.selfdrive.car import apply_driver_steer_torque_limits, apply_ti_steer_torque_limits
 from openpilot.selfdrive.car.interfaces import CarControllerBase
 from openpilot.selfdrive.car.mazda import mazdacan
-from openpilot.selfdrive.car.mazda.values import CarControllerParams, Buttons
+from openpilot.selfdrive.car.mazda.values import CarControllerParams, Buttons, MazdaFlags
+from openpilot.common.realtime import ControlsTimer as Timer
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
+LongCtrlState = car.CarControl.Actuators.LongControlState
 
 
 class CarController(CarControllerBase):
   def __init__(self, dbc_name, CP, VM):
     self.CP = CP
     self.apply_steer_last = 0
+    self.ti_apply_steer_last = 0
     self.packer = CANPacker(dbc_name)
     self.brake_counter = 0
     self.frame = 0
+    self.ccp = CarControllerParams(CP)
+    self.hold_timer = Timer(6.0)
+    self.hold_delay = Timer(.5) # delay before we start holding as to not hit the brakes too hard
+    self.resume_timer = Timer(0.5)
+    self.cancel_delay = Timer(0.07) # 70ms delay to try to avoid a race condition with stock system
 
   def update(self, CC, CS, now_nanos, frogpilot_toggles):
     can_sends = []
 
     apply_steer = 0
+    ti_apply_steer = 0
 
     if CC.latActive:
       # calculate steer and also set limits due to driver torque
-      new_steer = int(round(CC.actuators.steer * CarControllerParams.STEER_MAX))
+      new_steer = int(round(CC.actuators.steer * self.ccp.STEER_MAX))
       apply_steer = apply_driver_steer_torque_limits(new_steer, self.apply_steer_last,
-                                                     CS.out.steeringTorque, CarControllerParams)
+                                                     CS.out.steeringTorque, self.ccp)
+      if self.CP.flags & MazdaFlags.TORQUE_INTERCEPTOR:
+        if CS.ti_lkas_allowed:
+          ti_new_steer = int(round(CC.actuators.steer * self.ccp.TI_STEER_MAX))
+          ti_apply_steer = apply_ti_steer_torque_limits(ti_new_steer, self.ti_apply_steer_last,
+                                                    CS.out.steeringTorque, self.ccp)
 
     if CC.cruiseControl.cancel:
       # If brake is pressed, let us wait >70ms before trying to disable crz to avoid
@@ -45,22 +59,59 @@ class CarController(CarControllerBase):
         can_sends.append(mazdacan.create_button_cmd(self.packer, self.CP, CS.crz_btns_counter, Buttons.RESUME))
 
     self.apply_steer_last = apply_steer
+    self.ti_apply_steer_last = ti_apply_steer
+    if self.CP.flags & MazdaFlags.GEN1:
+      # send HUD alerts
+      if self.frame % 50 == 0:
+        ldw = CC.hudControl.visualAlert == VisualAlert.ldw
+        steer_required = CC.hudControl.visualAlert == VisualAlert.steerRequired
+        # TODO: find a way to silence audible warnings so we can add more hud alerts
+        steer_required = steer_required and CS.lkas_allowed_speed
+        can_sends.append(mazdacan.create_alert_command(self.packer, CS.cam_laneinfo, ldw, steer_required))
 
-    # send HUD alerts
-    if self.frame % 50 == 0:
-      ldw = CC.hudControl.visualAlert == VisualAlert.ldw
-      steer_required = CC.hudControl.visualAlert == VisualAlert.steerRequired
-      # TODO: find a way to silence audible warnings so we can add more hud alerts
-      steer_required = steer_required and CS.lkas_allowed_speed
-      can_sends.append(mazdacan.create_alert_command(self.packer, CS.cam_laneinfo, ldw, steer_required))
+      if self.CP.flags & MazdaFlags.RADAR_INTERCEPTOR:
+        hold = False
+        if CS.out.standstill:
+          hold = self.hold_timer.active()
+        else:
+          self.hold_timer.reset()
+        if self.frame % 2 == 0:
+          can_sends.extend(mazdacan.create_radar_command(self.packer, self.frame, CC, CS, hold))
+
+    else:
+      resume = False
+      hold = False
+      if Timer.interval(2): # send ACC command at 50hz
+        """
+        Without this hold/resum logic, the car will only stop momentarily.
+        It will then start creeping forward again. This logic allows the car to
+        apply the electric brake to hold the car. The hold delay also fixes a
+        bug with the stock ACC where it sometimes will apply the brakes too early
+        when coming to a stop.
+        """
+        if CS.out.standstill: # if we're stopped
+          if not self.hold_delay.active(): # and we have been stopped for more than hold_delay duration. This prevents a hard brake if we aren't fully stopped.
+            if (CC.cruiseControl.resume or CC.cruiseControl.override or CS.out.gasPressed or
+                CC.actuators.longControlState == LongCtrlState.starting): # and we want to resume
+              self.resume_timer.reset() # reset the resume timer so its active
+            else: # otherwise we're holding
+              hold = self.hold_timer.active() # hold for 6s. This allows the electric brake to hold the car.
+
+        else: # if we're moving
+          self.hold_timer.reset() # reset the hold timer so its active when we stop
+          self.hold_delay.reset() # reset the hold delay
+
+        resume = self.resume_timer.active() # stay on for 0.5s to release the brake. This allows the car to move.
+        can_sends.append(mazdacan.create_acc_cmd(self.packer, CS.acc, CC.actuators.accel, hold, resume))
 
     # send steering command
-    can_sends.append(mazdacan.create_steering_control(self.packer, self.CP,
+    can_sends.extend(mazdacan.create_steering_control(self.packer, self.CP,
                                                       self.frame, apply_steer, CS.cam_lkas))
 
     new_actuators = CC.actuators.as_builder()
-    new_actuators.steer = apply_steer / CarControllerParams.STEER_MAX
+    new_actuators.steer = apply_steer / self.ccp.STEER_MAX
     new_actuators.steerOutputCan = apply_steer
 
     self.frame += 1
+    Timer.tick()
     return new_actuators, can_sends

@@ -1,6 +1,7 @@
 #include "selfdrive/ui/qt/onroad/annotated_camera.h"
 
 #include <QPainter>
+#include <QPainterPath>
 #include <algorithm>
 #include <cmath>
 
