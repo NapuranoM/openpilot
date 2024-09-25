@@ -64,7 +64,7 @@ class CarInterface(CarInterfaceBase):
 
     CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
 
-    if candidate not in (CAR.MAZDA_CX5_2022, ) and not ret.flags & MazdaFlags.TORQUE_INTERCEPTOR:
+    if candidate not in (CAR.MAZDA_CX5_2022, CAR.MAZDA_3_2019, CAR.MAZDA_CX_30, CAR.MAZDA_CX_50) and not ret.flags & MazdaFlags.TORQUE_INTERCEPTOR:
       ret.minSteerSpeed = LKAS_LIMITS.DISABLE_SPEED * CV.KPH_TO_MS
 
     ret.centerToFront = ret.wheelbase * 0.41
@@ -91,7 +91,7 @@ class CarInterface(CarInterfaceBase):
 
       if not self.CS.acc_active_last and not self.CS.ti_lkas_allowed:
         events.add(EventName.steerTempUnavailable)
-      if not self.CS.ti_lkas_allowed and self.CP.flags & MazdaFlags.TORQUE_INTERCEPTOR:
+      if (not self.CS.ti_lkas_allowed) and (self.CP.flags & MazdaFlags.TORQUE_INTERCEPTOR):
         events.add(EventName.steerTempUnavailable) # torqueInterceptorTemporaryWarning
 
     ret.events = events.to_msg()
