@@ -101,11 +101,13 @@ class CAR(Platforms):
   )
   MAZDA_CX9_2021 = MazdaPlatformConfig(
     [MazdaCarDocs("Mazda CX-9 2021-23", video_link="https://youtu.be/dA3duO4a0O4")],
-    MAZDA_CX9.specs
+    MAZDA_CX9.specs,
+    flags=MazdaFlags.GEN1,
   )
   MAZDA_CX5_2022 = MazdaPlatformConfig(
     [MazdaCarDocs("Mazda CX-5 2022-24")],
     MAZDA_CX5.specs,
+    flags=MazdaFlags.GEN1,
   )
   MAZDA_3_2019 = MazdaPlatformConfig(
     [MazdaCarDocs("Mazda 3 2019-24")],
