@@ -223,7 +223,9 @@ class CarState(CarStateBase):
 
   @staticmethod
   def get_can_parser(CP):
-    messages = []
+    messages = [
+      ("CRZ_BTNS", 10),
+    ]
     if not (CP.flags & MazdaFlags.GEN2):
       messages += [
         # sig_address, frequency
@@ -239,7 +241,6 @@ class CarState(CarStateBase):
       messages += [
         ("ENGINE_DATA", 100),
         ("CRZ_EVENTS", 50),
-        ("CRZ_BTNS", 10),
         ("PEDALS", 50),
         ("BRAKE", 50),
         ("SEATBELT", 10),
@@ -259,7 +260,6 @@ class CarState(CarStateBase):
         ("CRUZE_STATE", 10),
         ("BLINK_INFO", 10),
         ("ACC", 50),
-        ("CRZ_BTNS", 10),
         ("SYSTEM_SETTINGS", 10),
       ]
 
