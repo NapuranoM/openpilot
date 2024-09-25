@@ -199,7 +199,7 @@ class CarState(CarStateBase):
     ret.cruiseState.speed = cp.vl["CRUZE_STATE"]["CRZ_SPEED"] * unit_conversion
     ret.cruiseState.enabled = (cp.vl["CRUZE_STATE"]["CRZ_STATE"] >= 2)
     ret.cruiseState.available = (cp.vl["CRUZE_STATE"]["CRZ_STATE"] != 0)
-    ret.cruiseState.standstill = ret.standstill
+    ret.cruiseState.standstill = False
 
     self.cp = cp
     self.cp_cam = cp_cam
