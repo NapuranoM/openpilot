@@ -175,7 +175,7 @@ class CarState(CarStateBase):
     ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_lamp(100, cp.vl["BLINK_INFO"]["LEFT_BLINK"] == 1,
                                                                       cp.vl["BLINK_INFO"]["RIGHT_BLINK"] == 1)
 
-    ret.rpm = cp_cam.vl["ENGINE_DATA"]["RPM"]
+    ret.engineRpm = cp_cam.vl["ENGINE_DATA"]["RPM"]
     self.shifting = cp_cam.vl["GEAR"]["SHIFT"]
     self.torque_converter_lock = cp_cam.vl["GEAR"]["TORQUE_CONVERTER_LOCK"]
 
