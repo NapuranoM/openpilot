@@ -4,7 +4,7 @@ from openpilot.common.conversions import Conversions as CV
 from opendbc.can.can_define import CANDefine
 from opendbc.can.parser import CANParser
 from openpilot.selfdrive.car.interfaces import CarStateBase
-from openpilot.selfdrive.car.mazda.values import DBC, LKAS_LIMITS, MazdaFlags, TI_STATE, CAR, CarControllerParams
+from openpilot.selfdrive.car.mazda.values import DBC, LKAS_LIMITS, MazdaFlags, TI_STATE, CarControllerParams
 
 class CarState(CarStateBase):
   def __init__(self, CP):
@@ -190,11 +190,11 @@ class CarState(CarStateBase):
     ret.steerFaultPermanent = False # TODO locate signal. Car shows light on dash if there is a fault
     ret.steerFaultTemporary = False # TODO locate signal. Car shows light on dash if there is a fault
 
-    ret.standstill = cp_cam.vl["SPEED"]["SPEED"] * unit_conversion == 0.0
+    ret.standstill = cp_cam.vl["SPEED"]["SPEED"] * unit_conversion < 0.1
     ret.cruiseState.speed = cp.vl["CRUZE_STATE"]["CRZ_SPEED"] * unit_conversion
     ret.cruiseState.enabled = (cp.vl["CRUZE_STATE"]["CRZ_STATE"] >= 2)
     ret.cruiseState.available = (cp.vl["CRUZE_STATE"]["CRZ_STATE"] != 0)
-    ret.cruiseState.standstill = False
+    ret.cruiseState.standstill = ret.standstill
 
     self.cp = cp
     self.cp_cam = cp_cam

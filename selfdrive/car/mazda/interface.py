@@ -20,7 +20,7 @@ class CarInterface(CarInterfaceBase):
     ret.radarUnavailable = True
 
     ret.dashcamOnly = False
-    ret.openpilotLongitudinalControl = experimental_long
+    ret.openpilotLongitudinalControl = True
     if candidate in GEN1:
       ret.safetyConfigs[0].safetyParam |= Panda.FLAG_MAZDA_GEN1
       p = Params()
