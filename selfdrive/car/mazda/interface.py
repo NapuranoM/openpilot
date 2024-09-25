@@ -23,25 +23,25 @@ class CarInterface(CarInterfaceBase):
     if candidate in GEN1:
       ret.safetyConfigs[0].safetyParam |= Panda.FLAG_MAZDA_GEN1
       p = Params()
-      if p.get("TorqueInterceptorEnabled"): # Torque Interceptor Installed
+      if p.get_bool("TorqueInterceptorEnabled"): # Torque Interceptor Installed
         print("Torque Interceptor Installed")
         ret.flags |= MazdaFlags.TORQUE_INTERCEPTOR.value
         ret.safetyConfigs[0].safetyParam |= Panda.FLAG_MAZDA_TORQUE_INTERCEPTOR
-      # if p.get("RadarInterceptorEnabled"): # Radar Interceptor Installed
-      #   ret.flags |= MazdaFlags.RADAR_INTERCEPTOR.value
-      #   ret.experimentalLongitudinalAvailable = True
-      #   ret.radarUnavailable = False
-      #   ret.startingState = True
-      #   ret.longitudinalTuning.kpBP = [0., 5., 30.]
-      #   ret.longitudinalTuning.kpV = [1.3, 1.0, 0.7]
-      #   ret.longitudinalTuning.kiBP = [0., 5., 20., 30.]
-      #   ret.longitudinalTuning.kiV = [0.36, 0.23, 0.17, 0.1]
-      #   ret.safetyConfigs[0].safetyParam |= Panda.FLAG_MAZDA_RADAR_INTERCEPTOR
+      if p.get_bool("RadarInterceptorEnabled"): # Radar Interceptor Installed
+        ret.flags |= MazdaFlags.RADAR_INTERCEPTOR.value
+        ret.experimentalLongitudinalAvailable = True
+        ret.radarUnavailable = False
+        ret.startingState = True
+        ret.longitudinalTuning.kpBP = [0., 5., 30.]
+        ret.longitudinalTuning.kpV = [1.3, 1.0, 0.7]
+        ret.longitudinalTuning.kiBP = [0., 5., 20., 30.]
+        ret.longitudinalTuning.kiV = [0.36, 0.23, 0.17, 0.1]
+        ret.safetyConfigs[0].safetyParam |= Panda.FLAG_MAZDA_RADAR_INTERCEPTOR
 
-      if p.get("NoMRCC"): # No Mazda Radar Cruise Control; Missing CRZ_CTRL signal
+      if p.get_bool("NoMRCC"): # No Mazda Radar Cruise Control; Missing CRZ_CTRL signal
         ret.flags |= MazdaFlags.NO_MRCC.value
         ret.safetyConfigs[0].safetyParam |= Panda.FLAG_MAZDA_NO_MRCC
-      if p.get("NoFSC"):  # No Front Sensing Camera
+      if p.get_bool("NoFSC"):  # No Front Sensing Camera
         ret.flags |= MazdaFlags.NO_FSC.value
         ret.safetyConfigs[0].safetyParam |= Panda.FLAG_MAZDA_NO_FSC
 
